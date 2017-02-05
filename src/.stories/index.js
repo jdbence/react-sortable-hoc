@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import {storiesOf} from '@kadira/storybook';
 import style from './Storybook.scss';
-import {SortableContainer, SortableElement, SortableHandle, arrayMove} from '../index';
+import {SortableContainer, SortableElement, SortableGroup, SortableHandle, arrayMove} from '../index';
 import VirtualList from 'react-tiny-virtual-list';
 import {
   defaultTableRowRenderer,
@@ -15,13 +15,14 @@ import 'react-virtualized/styles.css';
 import Infinite from 'react-infinite';
 import range from 'lodash/range';
 import random from 'lodash/random';
+import findIndex from 'lodash/findIndex';
 import classNames from 'classnames';
 
-function getItems(count, height) {
+function getItems(count, height, label) {
   var heights = [65, 110, 140, 65, 90, 65];
-  return range(count).map(value => {
+  return range(count).map((value) => {
     return {
-      value,
+      value: label ? label + value : value,
       height: height || heights[random(0, heights.length - 1)],
     };
   });
@@ -179,6 +180,79 @@ const SortableVirtualList = SortableContainer(({
     />
   );
 });
+
+
+class GroupWrapper extends Component {
+  constructor({components}) {
+    super();
+    this.state = {
+      components: components.map((c, i) => ({...c, key: `list-${i}`})),
+      isSorting: false,
+    };
+    this.group = new SortableGroup(this.handleMove, this.getRefs);
+  }
+  static propTypes = {
+    components: PropTypes.arrayOf(React.PropTypes.shape({
+      component: PropTypes.func,
+      className: PropTypes.string,
+      wrapperClass: PropTypes.string,
+      itemClass: PropTypes.string,
+      items: React.PropTypes.array,
+    })),
+  }
+
+  handleMove = (oldIndex, oldList, newIndex, newList) => {
+    var components = this.state.components.slice(0);
+    let index = findIndex(components, { 'key': oldList});
+    const switchItem = components[index].items[oldIndex];
+
+    // item found
+    if(switchItem){
+
+      // remove from old list
+      components[index].items.splice(oldIndex, 1);
+
+      // change table if required
+      if(newList !== oldList){
+        index = findIndex(components, { 'key': newList});
+      }
+
+      // add to new list
+      components[index].items.splice(newIndex, 0, switchItem);
+    }
+
+    this.setState({
+      components,
+    });
+  }
+
+  getRefs = () => {
+    return this.refs;
+  }
+
+  renderComponent = (c) => {
+    const Component = c.component;
+    const props = {
+      isSorting: false,
+      onSortStart: (item, e) => this.group.onSortStart(item, e, c.key),
+      onSortMove: this.group.onSortMove,
+      onSortEnd: this.group.onSortEnd,
+      ref: c.key,
+      ...c,
+    };
+    return <Component {...props} />;
+  }
+
+  render(){
+    const {wrapperClass} = this.props;
+    const {components} = this.state;
+    return (
+      <div className={wrapperClass}>
+        {components.map(c => this.renderComponent(c))}
+      </div>
+    );
+  }
+}
 
 // Function components cannot have refs, so we'll be using a class for React Virtualized
 class VirtualizedListWrapper extends Component {
@@ -467,6 +541,48 @@ storiesOf('Advanced', module)
       />
     );
   });
+
+storiesOf('Grouping', module)
+.add('Vertical', () => {
+  const className = classNames(style.list, style.stylizedList);
+  const itemClass = classNames(style.item, style.stylizedItem);
+  return (
+    <GroupWrapper
+      wrapperClass={style.vertGroups}
+      components={[
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 59, 'Dog')},
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 59, 'Cat')},
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 59, 'Bird')},
+      ]}
+    />
+  );
+})
+.add('Horizontal', () => {
+  const className = classNames(style.list, style.stylizedList, style.horizontalList);
+  const itemClass = classNames(style.item, style.stylizedItem, style.horizontalItem);
+  return (
+    <GroupWrapper
+      wrapperClass={style.root}
+      components={[
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 300, 'Dog'), axis:'x'},
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 300, 'Cat'), axis:'x'},
+      ]}
+    />
+  );
+})
+.add('Grid', () => {
+  const className = classNames(style.list, style.stylizedList, style.grid);
+  const itemClass = classNames(style.stylizedItem, style.gridItem);
+  return (
+    <GroupWrapper
+      wrapperClass={style.root}
+      components={[
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 110, 'Dog'), axis:'xy'},
+        {component:SortableList, className:className, itemClass:itemClass, items:getItems(5, 110, 'Cat'), axis:'xy'},
+      ]}
+    />
+  );
+});
 
 storiesOf('Customization', module)
   .add('Minimal styling', () => {
