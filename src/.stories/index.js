@@ -187,7 +187,6 @@ class GroupWrapper extends Component {
     super();
     this.state = {
       components: components.map((c, i) => ({...c, key: `list-${i}`})),
-      isSorting: false,
     };
     this.group = new SortableGroup(this.handleMove, this.getRefs);
   }
@@ -202,7 +201,7 @@ class GroupWrapper extends Component {
   }
 
   handleMove = (oldIndex, oldList, newIndex, newList) => {
-    var components = this.state.components.slice(0);
+    const components = this.state.components.slice(0);
     let index = findIndex(components, { 'key': oldList});
     const switchItem = components[index].items[oldIndex];
 
