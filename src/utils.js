@@ -48,16 +48,16 @@ export function closest(el, fn) {
 }
 
 export function closestChild(el, fn) {
-    el = [].concat(el);
+  el = [].concat(el);
     // search siblings
-    let found = el.find(fn) || false;
-    if(el.length === 0 || found) return found;
+  const found = el.find(fn) || false;
+  if(el.length === 0 || found) return found;
     // search children of siblings
-    let childList = [].concat.apply([], el.map(e => Array.from(e.childNodes)));
-    return closestChild(childList, fn);
+  const childList = [].concat.apply([], el.map(e => Array.from(e.childNodes)));
+  return closestChild(childList, fn);
 }
 
-export function limit(min, max, value) {
+export function clamp(value, min, max) {
   if (value < min) {
     return min;
   }
