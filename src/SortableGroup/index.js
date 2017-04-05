@@ -1,189 +1,179 @@
-import { debounce, each } from 'lodash';
-import { closestChild } from '../utils';
+import {Component, PropTypes} from 'react';
+import debounce from 'lodash/debounce';
+import {
+  closestNodeIndex,
+  center,
+  distanceRect,
+  overlap,
+  translateRect,
+} from './utils';
+import {closestChild, clamp} from '../utils';
 
-export default class SortableGroup {
-    constructor(onMove, getRefs) {
-        this.debounceCheckList = debounce(this.checkList, 250, { 'maxWait': 500 });
-        this.dragInfo = {
-            pageX: 0,
-            pageY: 0,
-            delta: {x:0, y:0},
-            current: null,
-            target: null
-        };
-        this.onMove = onMove;
-        this.getRefs = getRefs;
-    }
-    
-    onSortStart = (item, e, listName) => {
-        let target = item.node.getBoundingClientRect();
-        this.dragInfo.target = target;
-        this.dragInfo.current = listName;
-        this.dragInfo.delta = {
-            x: target.left - e.clientX,
-            y: target.top - e.clientY
-        };
-    }
-    
-    onSortMove = (e) => {
-        this.dragInfo.pageX = e.pageX;
-        this.dragInfo.pageY = e.pageY;
-        this.dragInfo.target = e.target.getBoundingClientRect();
-        
-        // limit the amount of times checkList() can be called
-        this.debounceCheckList();
-    }
-    
-    onSortEnd = ({oldIndex, newIndex}) => {
-        let lists = this.getRefs();
-        let {target, current} = this.dragInfo;
-        let t = this.center(target);
-        let closest = this.closestList(t.x, t.y, lists);
-        
-        // Moved within current list
-        if(current == closest && oldIndex != newIndex){
-            this.onMove(oldIndex, current, newIndex, closest);
-            
-            this.dragInfo.current = closest;
-        }
-        // Moved different list
-        else if (current != closest) {
-            
-            // Find the closest index in new list
-            newIndex = this.closestNodeIndex(t.x, t.y,
-                    lists[closest].container.childNodes);
-            
-            this.onMove(oldIndex, current, newIndex, closest);
-            this.dragInfo.current = closest;
-        }
-        
-        // Stop the debounce if it hasn't fired yet
-        this.debounceCheckList.cancel();
-    }
-    
-    checkList = () => {
-        let lists = this.getRefs();
-        let {target, current, delta, pageX, pageY} = this.dragInfo;
-        let t = this.center(target);
-        let closest = this.closestList(t.x, t.y, lists);
-        
-        // closest list is not the current list
-        if(current != closest){
-            
-            // overlap closest
-            let list = lists[closest].container.getBoundingClientRect();
-            if(this.overlap(target, list)){
-                t = this.center(target);
-                let newIndex = this.closestNodeIndex(t.x, t.y,
-                    lists[closest].container.childNodes);
-                
-                // stop dragging from the prev list (calls onSortEnd)
-                lists[current].handleSortEnd({});
-                
-                // start dragging from the closest list
-                this.startDragging(closest, newIndex, delta, pageX, pageY);
-                
-                this.dragInfo.current = closest;
-            }
-        }
-    }
-    
-    startDragging = (listName, index, delta, pageX, pageY) => {
-        let lists = this.getRefs();
-        let list = lists[listName];
-        let newIndex = this.clamp(index, 0, list.container.childNodes.length - 1);
-        let target = list.container.childNodes[newIndex];
-        let rect = target.getBoundingClientRect();
-        let handle = closestChild(target, (el) => el.sortableHandle);
-        
-        // start dragging item
-        list.handleStart({
-          target: handle || target,
-          clientX: rect.left - delta.x,
-          clientY: rect.top - delta.y,
-          preventDefault: function (){}
-        });
-        
-        // force update item position
-        list.helper.dispatchEvent(this.mouseMove(pageX, pageY));
-    }
-    
-    mouseMove(x, y) {
-        return new MouseEvent('mousemove', {
-            clientX: x,
-            clientY: y,
-            bubbles: true,
-            cancelable: true,
-            view: window
-        });
-    }
-    
-    closestList(x, y, lists) {
-        let d = 0;
-        let sd = 999999999;
-        let listName;
-        
-        each(lists, (c, key) => {
-            d = this.distanceRect(x, y, c.container.getBoundingClientRect());
-            if(d < sd){
-                sd = d;
-                listName = key;
-            }
-        });
-        return listName;
+export default class SortableGroup extends Component {
+  static propTypes = {
+    children: PropTypes.func,
+    items: PropTypes.array,
+    onMove: PropTypes.func,
+  };
+  dragInfo = {
+    pageX: 0,
+    pageY: 0,
+    delta: {
+      x: 0,
+      y: 0,
+    },
+    currentKey: null,
+    target: null,
+    rect: null,
+  };
+
+  lists = {};
+
+  registerRef(key, instance) {
+    this.lists[key] = instance;
+  }
+
+  onSortStart = key => (item, e) => {
+    const target = item.node.getBoundingClientRect();
+    const event = e.touches ? e.touches[0] : e;
+
+    this.dragInfo.target = target;
+    this.dragInfo.currentKey = key;
+    this.dragInfo.delta = {
+      x: target.left - event.clientX,
+      y: target.top - event.clientY,
+    };
+  };
+
+  onSortMove = e => {
+    const event = e.touches ? e.touches[0] : e;
+
+    this.dragInfo.pageX = event.pageX;
+    this.dragInfo.pageY = event.pageY;
+
+    this.findTargetContainer();
+  };
+
+  onSortEnd = ({oldIndex, newIndex}) => {
+    const {currentKey, delta, pageX, pageY, target} = this.dragInfo;
+    const targetRect = translateRect(pageX + delta.x, pageY + delta.y, target);
+    const t = center(targetRect);
+    const closestKey = this.closestContainer(t.x, t.y);
+
+    // Moved within current list
+    if (currentKey === closestKey && oldIndex !== newIndex) {
+      this.props.onMove({
+        oldIndex,
+        oldKey: currentKey,
+        newIndex,
+        newKey: closestKey,
+      });
+
+      this.dragInfo.currentKey = closestKey;
+    } else if (currentKey !== closestKey) {
+      // Moved different list
+      // Find the closest index in new list
+      newIndex = closestNodeIndex(
+        t.x,
+        t.y,
+        this.lists[closestKey].container.childNodes
+      );
+
+      this.props.onMove({
+        oldIndex,
+        oldKey: currentKey,
+        newIndex,
+        newKey: closestKey,
+      });
+      this.dragInfo.currentKey = closestKey;
     }
 
-    closestNodeIndex(x, y, nodes) {
-        if(nodes.length > 0){
-            let si, sd, d, r, i;
-          
-            // above last item in list
-            r = nodes[nodes.length - 1].getBoundingClientRect();
-            sd = r.bottom;
-            
-            if(y < sd){
-                sd = 999999999;
-                // closest node
-                for(i= 0; i < nodes.length; i++){
-                    r = this.center(nodes[i].getBoundingClientRect());
-                    d = this.distance(x, y, r.x, r.y);
-                    if(d < sd){
-                        sd = d;
-                        si = i;
-                    }
-                }
-                return si;
-            }
-        }
-        // default last node
-        return nodes.length;
+    // Stop the debounce if it hasn't fired yet
+    this.findTargetContainer.cancel();
+  };
+
+  findTargetContainer = debounce(() => {
+    const {currentKey, delta, pageX, pageY, target} = this.dragInfo;
+    const targetRect = translateRect(pageX + delta.x, pageY + delta.y, target);
+    let t = center(targetRect);
+
+    const closestKey = this.closestContainer(t.x, t.y);
+    const closest = this.lists[closestKey];
+
+    // closest list is not the current list
+    if (currentKey !== closestKey) {
+      // overlap closest
+      const list = closest.container.getBoundingClientRect();
+
+      if (overlap(targetRect, list)) {
+        t = center(targetRect);
+        const newIndex = closestNodeIndex(
+          t.x,
+          t.y,
+          closest.container.childNodes
+        );
+
+        // stop dragging from the prev list (calls onSortEnd)
+        this.lists[currentKey].handleSortEnd();
+
+        // start dragging from the closest list
+        this.startDragging(closest, newIndex, delta, pageX, pageY);
+
+        this.dragInfo.currentKey = closestKey;
+      }
     }
-    
-    center(rect) {
-        return {
-            x: rect.left + ((rect.right - rect.left) * 0.5),
-            y: rect.top + ((rect.bottom - rect.top) * 0.5)
-        };
-    }
-    
-    clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-    }
-    
-    distanceRect(x, y, rect) {
-        let dx = x - this.clamp(x, rect.left, rect.right);
-        let dy = y - this.clamp(y, rect.top, rect.bottom);
-        return Math.sqrt((dx * dx) + (dy * dy));
-    }
-    
-    distance(x1, y1, x2, y2) {
-        return Math.sqrt((x2 -= x1) * x2 + (y2 -= y1) * y2);
-    }
-    
-    overlap(a, b) {
-        return (a.left <= b.right &&
-            b.left <= a.right &&
-            a.top <= b.bottom &&
-            b.top <= a.bottom);
-    }
+  }, 50, {maxWait: 200});
+
+  startDragging = (list, index, delta, pageX, pageY) => {
+    const newIndex = clamp(index, 0, list.container.childNodes.length - 1);
+    const target = list.container.childNodes[newIndex];
+    const rect = target.getBoundingClientRect();
+    const handle = closestChild(target, el => el.sortableHandle);
+
+    // start dragging item
+    list.handleStart({
+      target: handle || target,
+      clientX: rect.left - delta.x,
+      clientY: rect.top - delta.y,
+      preventDefault: function() {},
+    });
+
+    // force update item position
+    list.handleSortMove({
+      target: list.helper,
+      clientX: pageX,
+      clientY: pageY,
+      pageX: pageX,
+      pageY: pageY,
+      preventDefault: function() {},
+    });
+  };
+
+  closestContainer(x, y) {
+    const keys = Object.keys(this.lists);
+    const distances = keys.map(key => {
+      const list = this.lists[key];
+      return distanceRect(x, y, list.container.getBoundingClientRect());
+    });
+
+    return keys[distances.indexOf(Math.min(...distances))];
+  }
+
+  connectGroupTarget = key => {
+    const {items} = this.props;
+
+    return {
+      ref: instance => this.registerRef(key, instance),
+      onSortStart: this.onSortStart(key),
+      onSortMove: this.onSortMove,
+      onSortEnd: this.onSortEnd,
+      items: items[key],
+    };
+  };
+
+  render() {
+    const {children} = this.props;
+
+    return children(this.connectGroupTarget);
+  }
 }
