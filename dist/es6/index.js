@@ -15,3 +15,4 @@ export { _sortableHandle as sortableHandle };
 
 
 export { arrayMove } from './utils';
+export { moveGroupItems } from './SortableGroup/utils';

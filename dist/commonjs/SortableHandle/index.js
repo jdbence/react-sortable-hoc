@@ -1,7 +1,7 @@
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
@@ -32,39 +32,40 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 // Export Higher Order Sortable Element Component
 function sortableHandle(WrappedComponent) {
-    var _class, _temp;
+  var _class, _temp;
 
-    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : { withRef: false };
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : { withRef: false };
 
-    return _temp = _class = function (_Component) {
-        _inherits(_class, _Component);
+  return _temp = _class = function (_Component) {
+    _inherits(_class, _Component);
 
-        function _class() {
-            _classCallCheck(this, _class);
+    function _class() {
+      _classCallCheck(this, _class);
 
-            return _possibleConstructorReturn(this, (_class.__proto__ || Object.getPrototypeOf(_class)).apply(this, arguments));
-        }
+      return _possibleConstructorReturn(this, (_class.__proto__ || Object.getPrototypeOf(_class)).apply(this, arguments));
+    }
 
-        _createClass(_class, [{
-            key: 'componentDidMount',
-            value: function componentDidMount() {
-                var node = (0, _reactDom.findDOMNode)(this);
-                node.sortableHandle = true;
-            }
-        }, {
-            key: 'getWrappedInstance',
-            value: function getWrappedInstance() {
-                (0, _invariant2.default)(config.withRef, 'To access the wrapped instance, you need to pass in {withRef: true} as the second argument of the SortableHandle() call');
-                return this.refs.wrappedInstance;
-            }
-        }, {
-            key: 'render',
-            value: function render() {
-                var ref = config.withRef ? 'wrappedInstance' : null;
-                return _react2.default.createElement(WrappedComponent, _extends({ ref: ref }, this.props));
-            }
-        }]);
+    _createClass(_class, [{
+      key: 'componentDidMount',
+      value: function componentDidMount() {
+        var node = (0, _reactDom.findDOMNode)(this);
+        node.sortableHandle = true;
+      }
+    }, {
+      key: 'getWrappedInstance',
+      value: function getWrappedInstance() {
+        (0, _invariant2.default)(config.withRef, 'To access the wrapped instance, you need to pass in {withRef: true} as the second argument of the SortableHandle() call');
+        return this.refs.wrappedInstance;
+      }
+    }, {
+      key: 'render',
+      value: function render() {
+        var ref = config.withRef ? 'wrappedInstance' : null;
 
-        return _class;
-    }(_react.Component), _class.displayName = (0, _utils.provideDisplayName)('sortableHandle', WrappedComponent), _temp;
+        return _react2.default.createElement(WrappedComponent, _extends({ ref: ref }, this.props));
+      }
+    }]);
+
+    return _class;
+  }(_react.Component), _class.displayName = (0, _utils.provideDisplayName)('sortableHandle', WrappedComponent), _temp;
 }

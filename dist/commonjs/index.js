@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.arrayMove = exports.sortableHandle = exports.sortableElement = exports.sortableContainer = exports.SortableHandle = exports.SortableGroup = exports.SortableElement = exports.SortableContainer = undefined;
+exports.moveGroupItems = exports.arrayMove = exports.sortableHandle = exports.sortableElement = exports.sortableContainer = exports.SortableHandle = exports.SortableGroup = exports.SortableElement = exports.SortableContainer = undefined;
 
 var _utils = require('./utils');
 
@@ -11,6 +11,15 @@ Object.defineProperty(exports, 'arrayMove', {
   enumerable: true,
   get: function get() {
     return _utils.arrayMove;
+  }
+});
+
+var _utils2 = require('./SortableGroup/utils');
+
+Object.defineProperty(exports, 'moveGroupItems', {
+  enumerable: true,
+  get: function get() {
+    return _utils2.moveGroupItems;
   }
 });
 
