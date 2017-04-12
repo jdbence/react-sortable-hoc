@@ -576,7 +576,6 @@ storiesOf('Grouping', module)
   const classNameA = classNames(style.list, style.stylizedList, style.sizedA);
   const classNameB = classNames(style.list, style.stylizedList, style.sizedB);
   const itemClass = classNames(style.item, style.stylizedItem);
-
   return (
     <GroupWrapper
       items={[

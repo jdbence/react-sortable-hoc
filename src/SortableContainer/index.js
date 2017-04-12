@@ -43,6 +43,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       useWindowAsScrollContainer: false,
       hideSortableGhost: true,
       contentWindow: typeof window !== 'undefined' ? window : null,
+
       shouldCancelStart: function (e) {
         // Cancel sorting if the event target is an `input`, `textarea`, `select` or `option`
         if (['input', 'textarea', 'select', 'option'].indexOf(e.target.tagName.toLowerCase()) !== -1) {
@@ -155,6 +156,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       return node.sortableInfo.manager === this.manager;
     };
 
+
     handleMove = (e) => {
       const {distance} = this.props;
 
@@ -178,7 +180,6 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       const {distance} = this.props;
 
       this._touched = false;
-
       if (!distance) { this.cancel(); }
     };
 
@@ -249,6 +250,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 
         this.minTranslate = {};
         this.maxTranslate = {};
+
         if (this.axis.x) {
           this.minTranslate.x = ((useWindowAsScrollContainer) ? 0 : containerBoundingRect.left) - this.boundingClientRect.left - (this.width / 2);
           this.maxTranslate.x = ((useWindowAsScrollContainer) ? this.contentWindow.innerWidth : containerBoundingRect.left + containerBoundingRect.width) - this.boundingClientRect.left - (this.width / 2);
@@ -390,7 +392,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 
       if (typeof lockOffset === 'string') {
         const match = /^[+-]?\d*(?:\.\d*)?(px|%)$/.exec(lockOffset);
-
+        
         invariant(
           match !== null,
           'lockOffset value should be a number or a string of a ' +
@@ -537,6 +539,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
               // If the current node is to the left on the same row, or above the node that's being dragged
               // then move it to the right
               translate.x = this.width + this.marginOffset.x;
+
               if (edgeOffset.left + translate.x > this.containerBoundingRect.width - offset.width) {
                 // If it moves passed the right bounds, then animate it to the first position of the next row.
                 // We just use the offset of the next node to calculate where to move, because that node's original position
@@ -547,6 +550,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
               if (this.newIndex === null) {
                 this.newIndex = index;
               }
+
             } else if (index > this.index
               && (((sortingOffset.left + offset.width >= edgeOffset.left) && (sortingOffset.top + offset.height >= edgeOffset.top))
               || (sortingOffset.top + offset.height >= edgeOffset.top + height))
@@ -554,6 +558,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
               // If the current node is to the right on the same row, or below the node that's being dragged
               // then move it to the left
               translate.x = -(this.width + this.marginOffset.x);
+
               if (edgeOffset.left + translate.x < this.containerBoundingRect.left + offset.width) {
                 // If it moves passed the left bounds, then animate it to the last position of the previous row.
                 // We just use the offset of the previous node to calculate where to move, because that node's original position
@@ -561,6 +566,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
                 translate.x = prevNode.edgeOffset.left - edgeOffset.left;
                 translate.y = prevNode.edgeOffset.top - edgeOffset.top;
               }
+
               this.newIndex = index;
             }
           } else {
@@ -570,6 +576,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
             }
             else if (index < this.index && (sortingOffset.left <= edgeOffset.left + offset.width)) {
               translate.x = this.width + this.marginOffset.x;
+
               if (this.newIndex == null) {
                 this.newIndex = index;
               }
@@ -650,13 +657,15 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
     };
 
     getWrappedInstance() {
-      invariant(config.withRef, 'To access the wrapped instance, you need to pass in {withRef: true} as the second argument of the SortableContainer() call');
+      invariant(
+        config.withRef,
+        'To access the wrapped instance, you need to pass in {withRef: true} as the second argument of the SortableContainer() call'
+      );
       return this.refs.wrappedInstance;
     }
 
     render() {
-      const ref = (config.withRef) ? 'wrappedInstance' : null;
-
+      const ref = config.withRef ? 'wrappedInstance' : null;
       return (
         <WrappedComponent
           ref={ref}
@@ -669,17 +678,14 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
             'transitionDuration',
             'useDragHandle',
             'pressDelay',
-
             'shouldCancelStart',
             'onSortStart',
             'onSortMove',
             'onSortEnd',
-
             'axis',
             'lockAxis',
             'lockOffset',
             'lockToContainerEdges',
-
             'getContainer',
           )}
         />

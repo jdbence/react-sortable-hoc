@@ -8,7 +8,6 @@ export default class Manager {
     if (!this.refs[collection]) {
       this.refs[collection] = [];
     }
-
     this.refs[collection].push(ref);
   }
 
