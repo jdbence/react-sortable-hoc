@@ -5,8 +5,9 @@ export default class Manager {
   refs = {};
 
   add(collection, ref) {
-    if (!this.refs[collection]) this.refs[collection] = [];
-
+    if (!this.refs[collection]) {
+      this.refs[collection] = [];
+    }
     this.refs[collection].push(ref);
   }
 

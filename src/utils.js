@@ -23,22 +23,14 @@ export const events = {
   end: ['touchend', 'touchcancel', 'mouseup'],
 };
 
-
 export const vendorPrefix = (function() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return ''; // server environment
-  }
-
+  if (typeof window === 'undefined' || typeof document === 'undefined') return ''; // server environment
   // fix for:
   //    https://bugzilla.mozilla.org/show_bug.cgi?id=548397
   //    window.getComputedStyle() returns null inside an iframe with display: none
   // in this case return an array with a fake mozilla style in it.
   const styles = window.getComputedStyle(document.documentElement, '') || ['-moz-hidden-iframe'];
-  const pre = (Array.prototype.slice
-    .call(styles)
-    .join('')
-    .match(/-(moz|webkit|ms)-/) ||
-    styles.OLink === '' && ['', 'o'])[1];
+  const pre = (Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/) || (styles.OLink === '' && ['', 'o']))[1];
 
   switch (pre) {
     case 'ms':
@@ -57,10 +49,10 @@ export function closest(el, fn) {
 
 export function closestChild(el, fn) {
   el = [].concat(el);
-  // search siblings
+    // search siblings
   const found = el.find(fn) || false;
-  if (el.length === 0 || found) return found;
-  // search children of siblings
+  if(el.length === 0 || found) return found;
+    // search children of siblings
   const childList = [].concat.apply([], el.map(e => Array.from(e.childNodes)));
   return closestChild(childList, fn);
 }

@@ -1,20 +1,15 @@
-import React, {Component, PropTypes} from 'react';
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import {storiesOf} from '@kadira/storybook';
 import style from './Storybook.scss';
+import {SortableContainer, SortableElement, SortableGroup, SortableHandle, arrayMove, moveGroupItems} from '../index';
+import VirtualList from 'react-tiny-virtual-list';
 import {
-  SortableContainer,
-  SortableElement,
-  SortableGroup,
-  SortableHandle,
-  arrayMove,
-  moveGroupItems,
-} from '../index';
-import {
-  defaultFlexTableRowRenderer,
-  FlexColumn,
-  FlexTable,
-  VirtualScroll,
+  defaultTableRowRenderer,
+  Column,
+  Table,
+  List,
 } from 'react-virtualized';
 import 'react-virtualized/styles.css';
 import Infinite from 'react-infinite';
@@ -24,7 +19,7 @@ import classNames from 'classnames';
 
 function getItems(count, height, label) {
   var heights = [65, 110, 140, 65, 90, 65];
-  return range(count).map(value => {
+  return range(count).map((value) => {
     return {
       value: label ? label + value : value,
       height: height || heights[random(0, heights.length - 1)],
@@ -40,12 +35,53 @@ const Item = SortableElement(props => {
       className={props.className}
       style={{
         height: props.height,
+        ...props.style,
       }}
     >
       {props.shouldUseDragHandle && <Handle />}
       <div className={style.wrapper}>
         <span>Item</span> {props.value}
       </div>
+    </div>
+  );
+});
+
+const SortableList = SortableContainer(({
+  className,
+  items,
+  itemClass,
+  shouldUseDragHandle,
+}) => {
+  return (
+    <div className={className}>
+      {items.map(({value, height}, index) => (
+        <Item
+          key={`item-${value}`}
+          className={itemClass}
+          index={index}
+          value={value}
+          height={height}
+          shouldUseDragHandle={shouldUseDragHandle}
+        />
+      ))}
+    </div>
+  );
+});
+
+const Category = SortableElement(props => {
+  return (
+    <div className={style.category}>
+      <div className={style.categoryHeader}>
+        <Handle />
+        <span>Category {props.value}</span>
+      </div>
+      <ListWrapper
+        component={SortableList}
+        className={style.categoryList}
+        items={getItems(3, 59)}
+        shouldUseDragHandle={true}
+        helperClass={style.stylizedHelper}
+      />
     </div>
   );
 });
@@ -87,10 +123,7 @@ class ListWrapper extends Component {
     const {onSortEnd} = this.props;
     const {items} = this.state;
 
-    this.setState({
-      items: arrayMove(items, oldIndex, newIndex),
-      isSorting: false,
-    });
+    this.setState({items: arrayMove(items, oldIndex, newIndex), isSorting: false});
 
     if (onSortEnd) {
       onSortEnd(this.refs.component);
@@ -112,60 +145,89 @@ class ListWrapper extends Component {
   }
 }
 
+
+const SortableVirtualList = SortableContainer(({
+  className,
+  items,
+  height,
+  width,
+  itemHeight,
+  itemClass,
+  sortingIndex,
+}) => {
+  return (
+    <VirtualList
+      className={className}
+      itemSize={index => items[index].height}
+      estimatedItemSize={itemHeight}
+      renderItem={({index, style}) => {
+        const {value, height} = items[index];
+        return (
+          <Item
+            key={value}
+            index={index}
+            className={itemClass}
+            value={value}
+            height={height}
+            style={style}
+          />
+        );
+      }}
+      itemCount={items.length}
+      width={width}
+      height={height}
+    />
+  );
+});
+
+
 class GroupWrapper extends Component {
   state = {
     items: this.props.items,
   };
   static propTypes = {
     items: React.PropTypes.array,
-    components: PropTypes.arrayOf(
-      React.PropTypes.shape({
-        component: PropTypes.func,
-        className: PropTypes.string,
-        itemClass: PropTypes.string,
-      })
-    ),
+    components: PropTypes.arrayOf(React.PropTypes.shape({
+      component: PropTypes.func,
+      className: PropTypes.string,
+      itemClass: PropTypes.string,
+    })),
     wrapperClass: PropTypes.string,
-  };
-  handleMove = movedItems => {
+  }
+  handleMove = (movedItems) => {
     const {items} = this.state;
 
     this.setState({
       items: moveGroupItems(items, movedItems),
     });
-  };
-  render() {
+  }
+  render(){
     const {components, wrapperClass} = this.props;
     const {items} = this.state;
 
     return (
-      <SortableGroup items={items} onMove={this.handleMove}>
-        {connectGroupTarget => (
+      <SortableGroup
+        items={items}
+        onMove={this.handleMove}
+      >
+        {connectGroupTarget =>
           <div className={wrapperClass}>
-            {components.map(({Component, ...props}, index) => (
+            {components.map(({Component, ...props}, index) =>
               <Component
                 key={index}
                 {...props}
                 {...connectGroupTarget(index)}
               />
-            ))}
+            )}
           </div>
-        )}
+        }
       </SortableGroup>
     );
   }
 }
 
-class VirtualList extends Component {
-  static propTypes = {
-    items: PropTypes.array,
-    className: PropTypes.string,
-    itemClass: PropTypes.string,
-    width: PropTypes.number,
-    height: PropTypes.number,
-    itemHeight: PropTypes.number,
-    sortingIndex: PropTypes.number,
-  };
+// Function components cannot have refs, so we'll be using a class for React Virtualized
+class VirtualizedListWrapper extends Component {
   render() {
     const {
       className,
@@ -174,24 +236,23 @@ class VirtualList extends Component {
       width,
       itemHeight,
       itemClass,
-      sortingIndex,
     } = this.props;
-
     return (
-      <VirtualScroll
+      <List
         ref="vs"
         className={className}
         rowHeight={({index}) => items[index].height}
         estimatedRowSize={itemHeight}
-        rowRenderer={({index}) => {
+        rowRenderer={({index, style}) => {
           const {value, height} = items[index];
           return (
             <Item
+              key={value}
               index={index}
               className={itemClass}
-              sortingIndex={sortingIndex}
               value={value}
               height={height}
+              style={style}
             />
           );
         }}
@@ -203,11 +264,11 @@ class VirtualList extends Component {
   }
 }
 
-const SortableVirtualList = SortableContainer(VirtualList, {withRef: true});
-const SortableFlexTable = SortableContainer(FlexTable, {withRef: true});
-const SortableRowRenderer = SortableElement(defaultFlexTableRowRenderer);
+const SortableVirtualizedList = SortableContainer(VirtualizedListWrapper, {withRef: true});
+const SortableTable = SortableContainer(Table, {withRef: true});
+const SortableRowRenderer = SortableElement(defaultTableRowRenderer);
 
-class FlexTableWrapper extends Component {
+class TableWrapper extends Component {
   static propTypes = {
     items: PropTypes.array,
     className: PropTypes.string,
@@ -231,9 +292,8 @@ class FlexTableWrapper extends Component {
     } = this.props;
 
     return (
-      <SortableFlexTable
-        getContainer={wrappedInstance =>
-          ReactDOM.findDOMNode(wrappedInstance.Grid)}
+      <SortableTable
+        getContainer={wrappedInstance => ReactDOM.findDOMNode(wrappedInstance.Grid)}
         gridClassName={className}
         headerHeight={itemHeight}
         height={height}
@@ -246,9 +306,9 @@ class FlexTableWrapper extends Component {
         rowRenderer={props => <SortableRowRenderer {...props} />}
         width={width}
       >
-        <FlexColumn label="Index" dataKey="value" width={100} />
-        <FlexColumn label="Height" dataKey="height" width={width - 100} />
-      </SortableFlexTable>
+        <Column label="Index" dataKey="value" width={100} />
+        <Column label="Height" dataKey="height" width={width - 100} />
+      </SortableTable>
     );
   }
 }
@@ -257,21 +317,17 @@ const SortableInfiniteList = SortableContainer(({
   className,
   items,
   itemClass,
-  sortingIndex,
-  sortableHandlers,
 }) => {
   return (
     <Infinite
       className={className}
       containerHeight={600}
       elementHeight={items.map(({height}) => height)}
-      {...sortableHandlers}
     >
       {items.map(({value, height}, index) => (
         <Item
           key={`item-${index}`}
           className={itemClass}
-          sortingIndex={sortingIndex}
           index={index}
           value={value}
           height={height}
@@ -281,65 +337,19 @@ const SortableInfiniteList = SortableContainer(({
   );
 });
 
-const SortableList = SortableContainer(({
-  className,
-  items,
-  itemClass,
-  sortingIndex,
-  shouldUseDragHandle,
-  sortableHandlers,
-}) => {
-  return (
-    <div className={className} {...sortableHandlers}>
-      {items.map(({value, height}, index) => (
-        <Item
-          key={`item-${value}`}
-          className={itemClass}
-          sortingIndex={sortingIndex}
-          index={index}
-          value={value}
-          height={height}
-          shouldUseDragHandle={shouldUseDragHandle}
-        />
-      ))}
-    </div>
-  );
-});
-
-const Category = SortableElement(props => {
-  return (
-    <div className={style.category}>
-      <div className={style.categoryHeader}>
-        <Handle />
-        <span>Category {props.value}</span>
-      </div>
-      <ListWrapper
-        component={SortableList}
-        className={style.categoryList}
-        items={getItems(3, 59)}
-        shouldUseDragHandle={true}
-        helperClass={style.stylizedHelper}
-      />
-    </div>
-  );
-});
-
 const ShrinkingSortableList = SortableContainer(({
   className,
   isSorting,
   items,
   itemClass,
-  sortingIndex,
   shouldUseDragHandle,
-  sortableHandlers,
 }) => {
   return (
-    <div className={className} {...sortableHandlers}>
+    <div className={className}>
       {items.map(({value, height}, index) => (
         <Item
           key={`item-${value}`}
           className={itemClass}
-          sortingIndex={sortingIndex}
           index={index}
           value={value}
           height={isSorting ? 20 : height}
@@ -350,16 +360,16 @@ const ShrinkingSortableList = SortableContainer(({
   );
 });
 
-const NestedSortableList = SortableContainer(({
-  className,
-  items,
-  sortableHandlers,
-}) => {
+const NestedSortableList = SortableContainer(({className, items, sortableHandlers}) => {
   return (
     <div className={className} {...sortableHandlers}>
-      {items.map((value, index) => (
-        <Category key={`category-${value}`} index={index} value={value} />
-      ))}
+      {items.map((value, index) =>
+        <Category
+          key={`category-${value}`}
+          index={index}
+          value={value}
+        />
+      )}
     </div>
   );
 });
@@ -400,10 +410,7 @@ storiesOf('Basic Configuration', module)
     );
   })
   .add('Elements that shrink', () => {
-    const getHelperDimensions = ({node}) => ({
-      height: 20,
-      width: node.offsetWidth,
-    });
+    const getHelperDimensions = ({node}) => ({height: 20, width: node.offsetWidth});
     return (
       <div className={style.root}>
         <ListWrapper
@@ -423,11 +430,7 @@ storiesOf('Basic Configuration', module)
           axis={'x'}
           items={getItems(50, 300)}
           helperClass={style.stylizedHelper}
-          className={classNames(
-            style.list,
-            style.stylizedList,
-            style.horizontalList
-          )}
+          className={classNames(style.list, style.stylizedList, style.horizontalList)}
           itemClass={classNames(style.stylizedItem, style.horizontalItem)}
         />
       </div>
@@ -473,6 +476,18 @@ storiesOf('Advanced', module)
       </div>
     );
   })
+  .add('Distance (20px)', () => {
+    return (
+      <div className={style.root}>
+        <ListWrapper
+          component={SortableList}
+          items={getItems(50, 50)}
+          distance={20}
+          helperClass={style.stylizedHelper}
+        />
+      </div>
+    );
+  })
   .add('Lock axis', () => {
     return (
       <div className={style.root}>
@@ -500,110 +515,98 @@ storiesOf('Advanced', module)
   });
 
 storiesOf('Grouping', module)
-  .add('Vertical', () => {
-    const className = classNames(style.list, style.stylizedList);
-    const itemClass = classNames(style.item, style.stylizedItem);
+.add('Vertical', () => {
+  const className = classNames(style.list, style.stylizedList);
+  const itemClass = classNames(style.item, style.stylizedItem);
 
-    return (
-      <GroupWrapper
-        items={[
-          getItems(5, 59, 'Dog'),
-          getItems(5, 59, 'Cat'),
-          getItems(5, 59, 'Bird'),
-        ]}
-        wrapperClass={style.vertGroups}
-        components={[
-          {Component: SortableList, className, itemClass},
-          {Component: SortableList, className, itemClass},
-          {Component: SortableList, className, itemClass},
-        ]}
-      />
-    );
-  })
-  .add('Horizontal', () => {
-    const className = classNames(
-      style.list,
-      style.stylizedList,
-      style.horizontalList
-    );
-    const itemClass = classNames(
-      style.item,
-      style.stylizedItem,
-      style.horizontalItem
-    );
+  return (
+    <GroupWrapper
+      items={[
+        getItems(5, 59, 'Dog'),
+        getItems(5, 59, 'Cat'),
+        getItems(5, 59, 'Bird'),
+      ]}
+      wrapperClass={style.vertGroups}
+      components={[
+        {Component: SortableList, className, itemClass},
+        {Component: SortableList, className, itemClass},
+        {Component: SortableList, className, itemClass},
+      ]}
+    />
+  );
+})
+.add('Horizontal', () => {
+  const className = classNames(style.list, style.stylizedList, style.horizontalList);
+  const itemClass = classNames(style.item, style.stylizedItem, style.horizontalItem);
 
-    return (
-      <GroupWrapper
-        items={[
-          getItems(5, 300, 'Dog'),
-          getItems(5, 300, 'Cat'),
-          getItems(5, 300, 'Cat'),
-        ]}
-        wrapperClass={style.root}
-        components={[
-          {Component: SortableList, className, itemClass, axis: 'x'},
-          {Component: SortableList, className, itemClass, axis: 'x'},
-        ]}
-      />
-    );
-  })
-  .add('Grid', () => {
-    const className = classNames(style.list, style.stylizedList, style.grid);
-    const itemClass = classNames(style.stylizedItem, style.gridItem);
+  return (
+    <GroupWrapper
+      items={[
+        getItems(5, 300, 'Dog'),
+        getItems(5, 300, 'Cat'),
+        getItems(5, 300, 'Cat'),
+      ]}
+      wrapperClass={style.root}
+      components={[
+        {Component: SortableList, className, itemClass, axis:'x'},
+        {Component: SortableList, className, itemClass, axis:'x'},
+      ]}
+    />
+  );
+})
+.add('Grid', () => {
+  const className = classNames(style.list, style.stylizedList, style.grid);
+  const itemClass = classNames(style.stylizedItem, style.gridItem);
 
-    return (
-      <GroupWrapper
-        items={[getItems(5, 110, 'Dog'), getItems(5, 110, 'Cat')]}
-        wrapperClass={style.root}
-        components={[
-          {Component: SortableList, className, itemClass, axis: 'xy'},
-          {Component: SortableList, className, itemClass, axis: 'xy'},
-        ]}
-      />
-    );
-  })
-  .add('Different Height Containers', () => {
-    const classNameA = classNames(style.list, style.stylizedList, style.sizedA);
-    const classNameB = classNames(style.list, style.stylizedList, style.sizedB);
-    const itemClass = classNames(style.item, style.stylizedItem);
-
-    return (
-      <GroupWrapper
-        items={[getItems(3, 50, 'Dog'), getItems(3, 50, 'Cat')]}
-        wrapperClass={style.root}
-        components={[
-          {Component: SortableList, className: classNameA, itemClass},
-          {Component: SortableList, className: classNameB, itemClass},
-        ]}
-      />
-    );
-  })
-  .add('Hand Cursor', () => {
-    const className = classNames(style.list, style.stylizedList);
-    const itemClass = classNames(style.item, style.stylizedItem);
-    return (
-      <GroupWrapper
-        items={[getItems(5, 59, 'Dog'), getItems(5, 59, 'Cat')]}
-        wrapperClass={style.vertGroups}
-        components={[
-          {
-            Component: SortableList,
-            className,
-            useDragHandle: true,
-            shouldUseDragHandle: true,
-            itemClass,
-          },
-          {
-            Component: SortableList,
-            className,
-            useDragHandle: true,
-            shouldUseDragHandle: true,
-            itemClass,
-          },
-        ]}
-      />
-    );
-  });
+  return (
+    <GroupWrapper
+      items={[
+        getItems(5, 110, 'Dog'),
+        getItems(5, 110, 'Cat'),
+      ]}
+      wrapperClass={style.root}
+      components={[
+        {Component: SortableList, className, itemClass, axis:'xy'},
+        {Component: SortableList, className, itemClass, axis:'xy'},
+      ]}
+    />
+  );
+})
+.add('Different Height Containers', () => {
+  const classNameA = classNames(style.list, style.stylizedList, style.sizedA);
+  const classNameB = classNames(style.list, style.stylizedList, style.sizedB);
+  const itemClass = classNames(style.item, style.stylizedItem);
+  return (
+    <GroupWrapper
+      items={[
+        getItems(3, 50, 'Dog'),
+        getItems(3, 50, 'Cat'),
+      ]}
+      wrapperClass={style.root}
+      components={[
+        {Component: SortableList, className: classNameA, itemClass},
+        {Component: SortableList, className: classNameB, itemClass},
+      ]}
+    />
+  );
+})
+.add('Hand Cursor', () => {
+  const className = classNames(style.list, style.stylizedList);
+  const itemClass = classNames(style.item, style.stylizedItem);
+  return (
+    <GroupWrapper
+      items={[
+        getItems(5, 59, 'Dog'),
+        getItems(5, 59, 'Cat'),
+      ]}
+      wrapperClass={style.vertGroups}
+      components={[
+        {Component: SortableList, className, useDragHandle: true, shouldUseDragHandle: true, itemClass},
+        {Component: SortableList, className, useDragHandle: true, shouldUseDragHandle: true, itemClass},
+      ]}
+    />
+  );
+});
 
 storiesOf('Customization', module)
   .add('Minimal styling', () => {
@@ -644,7 +647,7 @@ storiesOf('Customization', module)
     );
   });
 
-storiesOf('React Virtualized', module)
+storiesOf('react-tiny-virtual-list', module)
   .add('Basic usage', () => {
     return (
       <div className={style.root}>
@@ -665,6 +668,32 @@ storiesOf('React Virtualized', module)
           items={getItems(500)}
           itemHeight={89}
           helperClass={style.stylizedHelper}
+        />
+      </div>
+    );
+  });
+
+storiesOf('react-virtualized', module)
+  .add('Basic usage', () => {
+    return (
+      <div className={style.root}>
+        <ListWrapper
+          component={SortableVirtualizedList}
+          items={getItems(500, 59)}
+          itemHeight={59}
+          helperClass={style.stylizedHelper}
+        />
+      </div>
+    );
+  })
+  .add('Elements of varying heights', () => {
+    return (
+      <div className={style.root}>
+        <ListWrapper
+          component={SortableVirtualizedList}
+          items={getItems(500)}
+          itemHeight={89}
+          helperClass={style.stylizedHelper}
           onSortEnd={ref => {
             // We need to inform React Virtualized that the item heights have changed
             const instance = ref.getWrappedInstance();
@@ -677,11 +706,11 @@ storiesOf('React Virtualized', module)
       </div>
     );
   })
-  .add('FlexTable usage', () => {
+  .add('Table usage', () => {
     return (
       <div className={style.root}>
         <ListWrapper
-          component={FlexTableWrapper}
+          component={TableWrapper}
           items={getItems(500, 50)}
           itemHeight={50}
           helperClass={style.stylizedHelper}
@@ -690,7 +719,7 @@ storiesOf('React Virtualized', module)
     );
   });
 
-storiesOf('React Infinite', module)
+storiesOf('react-infinite', module)
   .add('Basic usage', () => {
     return (
       <div className={style.root}>
