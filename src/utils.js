@@ -23,22 +23,14 @@ export const events = {
   end: ['touchend', 'touchcancel', 'mouseup'],
 };
 
-
 export const vendorPrefix = (function() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return ''; // server environment
-  }
-
+  if (typeof window === 'undefined' || typeof document === 'undefined') return ''; // server environment
   // fix for:
   //    https://bugzilla.mozilla.org/show_bug.cgi?id=548397
   //    window.getComputedStyle() returns null inside an iframe with display: none
   // in this case return an array with a fake mozilla style in it.
   const styles = window.getComputedStyle(document.documentElement, '') || ['-moz-hidden-iframe'];
-  const pre = (Array.prototype.slice
-    .call(styles)
-    .join('')
-    .match(/-(moz|webkit|ms)-/) ||
-    styles.OLink === '' && ['', 'o'])[1];
+  const pre = (Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/) || (styles.OLink === '' && ['', 'o']))[1];
 
   switch (pre) {
     case 'ms':
@@ -65,7 +57,7 @@ export function closestChild(el, fn) {
   return closestChild(childList, fn);
 }
 
-export function clamp(value, min, max) {
+export function limit(min, max, value) {
   if (value < min) {
     return min;
   }
