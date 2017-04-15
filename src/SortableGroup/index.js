@@ -1,4 +1,5 @@
-import {Component, PropTypes} from 'react';
+import PropTypes from 'prop-types';
+import {Component} from 'react';
 import debounce from 'lodash/debounce';
 import {
   closestNodeIndex,
@@ -7,7 +8,7 @@ import {
   overlap,
   translateRect,
 } from './utils';
-import {closestChild, clamp} from '../utils';
+import {closestChild, limit} from '../utils';
 
 export default class SortableGroup extends Component {
   static propTypes = {
@@ -125,7 +126,7 @@ export default class SortableGroup extends Component {
   }, 50, {maxWait: 200});
 
   startDragging = (list, index, delta, pageX, pageY) => {
-    const newIndex = clamp(index, 0, list.container.childNodes.length - 1);
+    const newIndex = limit(index, 0, list.container.childNodes.length - 1);
     const target = list.container.childNodes[newIndex];
     const rect = target.getBoundingClientRect();
     const handle = closestChild(target, el => el.sortableHandle);

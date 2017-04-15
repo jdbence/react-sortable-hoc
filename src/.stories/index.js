@@ -24,11 +24,12 @@ import range from 'lodash/range';
 import random from 'lodash/random';
 import classNames from 'classnames';
 
-function getItems(count, height) {
+
+function getItems(count, height, label) {
   var heights = [65, 110, 140, 65, 90, 65];
   return range(count).map(value => {
     return {
-      value,
+      value: label ? label + value : value,
       height: height || heights[random(0, heights.length - 1)],
     };
   });
@@ -157,9 +158,9 @@ class GroupWrapper extends Component {
     items: this.props.items,
   };
   static propTypes = {
-    items: React.PropTypes.array,
+    items: PropTypes.array,
     components: PropTypes.arrayOf(
-      React.PropTypes.shape({
+      PropTypes.shape({
         component: PropTypes.func,
         className: PropTypes.string,
         itemClass: PropTypes.string,

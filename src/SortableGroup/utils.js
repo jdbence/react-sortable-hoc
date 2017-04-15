@@ -1,4 +1,4 @@
-import {clamp} from '../utils';
+import {limit} from '../utils';
 
 // TODO: Implement using slice instead of splice to avoid side-effects
 export function moveGroupItems(items, {oldIndex, oldKey, newIndex, newKey}) {
@@ -56,9 +56,9 @@ export function distance(x1, y1, x2, y2) {
 }
 
 export function distanceRect(x, y, rect) {
-  const dx = x - clamp(x, rect.left, rect.right);
-  const dy = y - clamp(y, rect.top, rect.bottom);
-  
+  const dx = x - limit(x, rect.left, rect.right);
+  const dy = y - limit(y, rect.top, rect.bottom);
+
   return Math.sqrt(dx * dx + dy * dy);
 }
 
