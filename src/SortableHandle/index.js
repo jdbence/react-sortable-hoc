@@ -24,7 +24,7 @@ export default function sortableHandle(WrappedComponent, config = {withRef: fals
 
     render() {
       const ref = config.withRef ? 'wrappedInstance' : null;
-      
+
       return <WrappedComponent ref={ref} {...this.props} />;
     }
   };
