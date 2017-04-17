@@ -60,6 +60,7 @@ const SortableList = SortableContainer(({
   itemClass,
   shouldUseDragHandle,
 }) => {
+    console.log(items);
   return (
     <div className={className}>
       {items.map(({value, height}, index) => (
@@ -169,6 +170,7 @@ class GroupWrapper extends Component {
     wrapperClass: PropTypes.string,
   };
   handleMove = movedItems => {
+      console.log(movedItems);
     const {items} = this.state;
 
     this.setState({
@@ -336,7 +338,7 @@ const SortableInfiniteList = SortableContainer(({
     >
       {items.map(({value, height}, index) => (
         <Item
-          key={`item-${index}`}
+          key={`item-${value}`}
           className={itemClass}
           sortingIndex={sortingIndex}
           index={index}
