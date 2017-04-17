@@ -126,8 +126,9 @@ export default class SortableGroup extends Component {
   }, 50, {maxWait: 200});
 
   startDragging = (list, index, delta, pageX, pageY) => {
-    const newIndex = limit(index, 0, list.container.childNodes.length - 1);
+    const newIndex = limit(0, list.container.childNodes.length - 1, index);
     const target = list.container.childNodes[newIndex];
+
     const rect = target.getBoundingClientRect();
     const handle = closestChild(target, el => el.sortableHandle);
 
