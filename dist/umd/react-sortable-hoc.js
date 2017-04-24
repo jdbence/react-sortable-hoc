@@ -8390,8 +8390,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var target = item.node.getBoundingClientRect();
 	        var event = e.touches ? e.touches[0] : e;
 
+	        _this.dragInfo.pageX = event.pageX;
+	        _this.dragInfo.pageY = event.pageY;
 	        _this.dragInfo.target = target;
 	        _this.dragInfo.currentKey = key;
+
 	        _this.dragInfo.delta = {
 	          x: target.left - event.clientX,
 	          y: target.top - event.clientY
@@ -8404,7 +8407,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      _this.dragInfo.pageY = event.pageY;
 
 	      _this.findTargetContainer();
-	    }, _this.onSortEnd = function (_ref2) {
+	    }, _this.onSortEnd = function (_ref2, e) {
 	      var oldIndex = _ref2.oldIndex,
 	          newIndex = _ref2.newIndex;
 	      var _this$dragInfo = _this.dragInfo,
@@ -8417,14 +8420,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var targetRect = (0, _utils.translateRect)(pageX + delta.x, pageY + delta.y, target);
 	      var t = (0, _utils.center)(targetRect);
 	      var closestKey = _this.closestContainer(t.x, t.y);
+	      var isDoneDragging = e && e.type === 'mouseup';
 
 	      // Moved within current list
-	      if (currentKey === closestKey && oldIndex !== newIndex) {
+	      if (currentKey === closestKey) {
 	        _this.props.onMove({
 	          oldIndex: oldIndex,
 	          oldKey: currentKey,
 	          newIndex: newIndex,
-	          newKey: closestKey
+	          newKey: closestKey,
+	          isDoneDragging: isDoneDragging
 	        });
 
 	        _this.dragInfo.currentKey = closestKey;
@@ -8437,7 +8442,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          oldIndex: oldIndex,
 	          oldKey: currentKey,
 	          newIndex: newIndex,
-	          newKey: closestKey
+	          newKey: closestKey,
+	          isDoneDragging: isDoneDragging
 	        });
 	        _this.dragInfo.currentKey = closestKey;
 	      }

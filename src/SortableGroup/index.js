@@ -37,6 +37,8 @@ export default class SortableGroup extends Component {
     const target = item.node.getBoundingClientRect();
     const event = e.touches ? e.touches[0] : e;
 
+    this.dragInfo.pageX = event.pageX;
+    this.dragInfo.pageY = event.pageY;
     this.dragInfo.target = target;
     this.dragInfo.currentKey = key;
     this.dragInfo.delta = {
@@ -54,19 +56,21 @@ export default class SortableGroup extends Component {
     this.findTargetContainer();
   };
 
-  onSortEnd = ({oldIndex, newIndex}) => {
+  onSortEnd = ({oldIndex, newIndex}, e) => {
     const {currentKey, delta, pageX, pageY, target} = this.dragInfo;
     const targetRect = translateRect(pageX + delta.x, pageY + delta.y, target);
     const t = center(targetRect);
     const closestKey = this.closestContainer(t.x, t.y);
+    const isDoneDragging = e && e.type === 'mouseup';
 
     // Moved within current list
-    if (currentKey === closestKey && oldIndex !== newIndex) {
+    if (currentKey === closestKey) {
       this.props.onMove({
         oldIndex,
         oldKey: currentKey,
         newIndex,
         newKey: closestKey,
+        isDoneDragging,
       });
 
       this.dragInfo.currentKey = closestKey;
@@ -84,6 +88,7 @@ export default class SortableGroup extends Component {
         oldKey: currentKey,
         newIndex,
         newKey: closestKey,
+        isDoneDragging,
       });
       this.dragInfo.currentKey = closestKey;
     }
