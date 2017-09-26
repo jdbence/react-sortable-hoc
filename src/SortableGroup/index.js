@@ -158,7 +158,7 @@ export default class SortableGroup extends Component {
     const keys = Object.keys(this.lists);
     const distances = keys.map(key => {
       const list = this.lists[key];
-      return distanceRect(x, y, list.container.getBoundingClientRect());
+      return list ? distanceRect(x, y, list.container.getBoundingClientRect()) : Infinity;
     });
 
     return keys[distances.indexOf(Math.min(...distances))];

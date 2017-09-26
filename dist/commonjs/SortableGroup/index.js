@@ -59,7 +59,6 @@ var SortableGroup = function (_Component) {
         _this.dragInfo.pageY = event.pageY;
         _this.dragInfo.target = target;
         _this.dragInfo.currentKey = key;
-
         _this.dragInfo.delta = {
           x: target.left - event.clientX,
           y: target.top - event.clientY
@@ -201,7 +200,7 @@ var SortableGroup = function (_Component) {
       var keys = Object.keys(this.lists);
       var distances = keys.map(function (key) {
         var list = _this2.lists[key];
-        return (0, _utils.distanceRect)(x, y, list.container.getBoundingClientRect());
+        return list ? (0, _utils.distanceRect)(x, y, list.container.getBoundingClientRect()) : Infinity;
       });
 
       return keys[distances.indexOf(Math.min.apply(Math, _toConsumableArray(distances)))];
